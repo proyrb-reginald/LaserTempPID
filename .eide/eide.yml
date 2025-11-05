@@ -6,6 +6,8 @@ packDir: null
 srcDirs:
   - hal
   - app
+  - rtthread
+  - bsp
 virtualFolder:
   name: <virtual_root>
   files: []
@@ -29,6 +31,9 @@ targets:
         - driver/dacx0502
         - driver/mcp4728
         - app
+        - rtthread/components/finsh/inc
+        - rtthread/include
+        - bsp
       libList: []
     excludeList: []
     toolchain: GCC
