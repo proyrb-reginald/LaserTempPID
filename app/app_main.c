@@ -1,3 +1,4 @@
+#include <ads1118.h>
 #include <board.h>
 #include <mcp4728.h>
 #include <rtthread.h>
@@ -5,6 +6,7 @@
 int main(void)
 {
     mcp4728_init();
+    ads1118_init();
     while (1)
     {
         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_4);
@@ -22,6 +24,7 @@ int main(void)
             mcp4728_set_dac_a(1.0f);
             mcp4728_set_dac_b(1.0f);
         }
+        ads1118_read_ain();
         rt_thread_mdelay(1000);
     }
 }
