@@ -31,6 +31,7 @@ void rt_hw_board_init(void)
     HAL_SYSTICK_Config(HAL_RCC_GetSysClockFreq() / RT_TICK_PER_SECOND);
     MX_GPIO_Init();
     MX_I2C1_Init();
+    MX_SPI3_Init();
 
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();

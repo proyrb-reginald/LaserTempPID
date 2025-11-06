@@ -32,17 +32,11 @@ inline void dacx0502_i2c_receive(DACX0502_UINT8_TYPE *data,
 #include <spi.h>
 void dacx0502_spi_transmit(DACX0502_UINT8_TYPE *data, DACX0502_UINT16_TYPE size)
 {
-    // #error "Please implement the spi transmit function!"
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
-    HAL_SPI_Transmit(&hspi2, data, size, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+#error "Please implement the spi transmit function!"
 }
 void dacx0502_spi_receive(DACX0502_UINT8_TYPE *data, DACX0502_UINT16_TYPE size)
 {
-    // #error "Please implement the spi receive function!"
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
-    HAL_SPI_Receive(&hspi2, data, size, HAL_MAX_DELAY);
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+#error "Please implement the spi receive function!"
 }
 #endif
 #endif

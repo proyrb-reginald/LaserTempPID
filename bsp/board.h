@@ -6,6 +6,7 @@
 #include <gpio.h>
 #include <usart.h>
 #include <i2c.h>
+#include <spi.h>
 
 extern void rt_os_tick_callback(void);
 extern int rt_lprintf(const char *fmt, ...);

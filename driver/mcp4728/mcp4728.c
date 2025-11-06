@@ -1,153 +1,104 @@
-#include "mcp4728.h"
+#define MCP4728_C
 
-uint8_t mcp4728_init(void)
+#include <mcp4728.h>
+
+#define MCP4728_DAC_MAX (4096 - 1)
+#define MCP4728_CX(x) (MCP4728_UINT8_TYPE)(x)
+#define MCP4728_WX(x) (MCP4728_UINT8_TYPE)(x)
+#define MCP4728_DACX(x) (MCP4728_UINT8_TYPE)(x)
+#define MCP4728_VREFX(x) (MCP4728_UINT8_TYPE)(x)
+#define MCP4728_PDX(x) (MCP4728_UINT8_TYPE)(x)
+#define MCP4728_GX(x) (MCP4728_UINT8_TYPE)(x)
+
+static MCP4728_UINT8_TYPE mcp4728_addr_eeprom = 0b01100000;
+static MCP4728_UINT8_TYPE mcp4728_addr_register = 0b01100000;
+
+void mcp4728_init(void)
 {
-    /* 检查设备是否响应 */
-    HAL_StatusTypeDef status = HAL_I2C_IsDeviceReady(
-        &MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1, 3, MCP4728_TIMEOUT_MS);
+    /* 设备复位 */
+    mcp4728_i2c_transmit(0x0, (MCP4728_UINT8_TYPE[]){0x06}, 1);
+    MCP4728_DELAY_INTERFACE(1);
 
-    return (status == HAL_OK) ? 0 : 1;
+    /* 设备唤醒 */
+    mcp4728_i2c_transmit(0x0, (MCP4728_UINT8_TYPE[]){0x09}, 1);
+    MCP4728_DELAY_INTERFACE(1);
+
+    /* 读取地址位 */
+    MCP4728_UINT8_TYPE data[1] = {0};
+    mcp4728_gpio_ldac_set();
+    mcp4728_i2c_transmit(0x0, (MCP4728_UINT8_TYPE[]){0x0C}, 1);
+    mcp4728_gpio_ldac_reset();
+    mcp4728_i2c_transmit((0b1100000 << 1) | 0x1, data, 1);
+    mcp4728_gpio_ldac_set();
+    mcp4728_addr_eeprom = 0b01100000 | ((data[0] >> 5) & 0x07);
+    mcp4728_addr_register = 0b01100000 | ((data[0] >> 1) & 0x07);
+    MCP4728_DEBUG_INTERFACE("0x%X(RAW) 0x%X(EEPROM) 0x%X(Register)\n", data[0],
+                            mcp4728_addr_eeprom, mcp4728_addr_register);
+
+    /* 设置通道增益 */
+    data[0] = 0;
+    data[0] |= (MCP4728_CX(6) << 5) & 0xE0;
+    data[0] |= (0b0 << 3) & 0x08; // Gain 1 for A
+    data[0] |= (0b0 << 2) & 0x04; // Gain 1 for B
+    data[0] |= (0b0 << 1) & 0x02; // Gain 1 for C
+    data[0] |= (0b0 << 0) & 0x01; // Gain 1 for D
+    mcp4728_i2c_transmit((mcp4728_addr_register << 1 | 0x0), data, 1);
 }
 
-uint8_t mcp4728_fast_write(uint8_t channel, uint16_t data)
+void mcp4728_set_dac_a(float rate)
 {
-    uint8_t buffer[3];
-
-    /* 确保数据不超过12位 */
-    data &= 0x0FFF;
-
-    /* 构造快速写命令 */
-    buffer[0] = MCP4728_CMD_FAST_WRITE | (channel << 1) | ((data >> 8) & 0x0F);
-    buffer[1] = data & 0xFF;
-
-    /* 发送数据 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                buffer, 2, MCP4728_TIMEOUT_MS);
-
-    return (status == HAL_OK) ? 0 : 1;
-}
-
-uint8_t mcp4728_write_channel_reg(uint8_t channel,
-                                  const mcp4728_channel_config_t *config)
-{
-    uint8_t buffer[3];
-
-    /* 确保数据不超过12位 */
-    uint16_t data = config->data & 0x0FFF;
-
-    /* 构造写寄存器命令 */
-    buffer[0] = MCP4728_CMD_WRITE_REG | (channel << 1);
-    buffer[1] = ((config->ref_mode & 0x01) << 7) |
-                ((config->power_mode & 0x03) << 5) |
-                ((config->gain & 0x01) << 4) | ((data >> 8) & 0x0F);
-    buffer[2] = data & 0xFF;
-
-    /* 发送数据 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                buffer, 3, MCP4728_TIMEOUT_MS);
-
-    return (status == HAL_OK) ? 0 : 1;
-}
-
-uint8_t mcp4728_write_channel_eeprom(uint8_t channel,
-                                     const mcp4728_channel_config_t *config)
-{
-    uint8_t buffer[3];
-
-    /* 确保数据不超过12位 */
-    uint16_t data = config->data & 0x0FFF;
-
-    /* 构造写EEPROM命令 */
-    buffer[0] = MCP4728_CMD_WRITE_EEPROM | (channel << 1);
-    buffer[1] = ((config->ref_mode & 0x01) << 7) |
-                ((config->power_mode & 0x03) << 5) |
-                ((config->gain & 0x01) << 4) | ((data >> 8) & 0x0F);
-    buffer[2] = data & 0xFF;
-
-    /* 发送数据 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                buffer, 3, MCP4728_TIMEOUT_MS);
-
-    return (status == HAL_OK) ? 0 : 1;
-}
-
-uint8_t mcp4728_write_all_channels_reg(const mcp4728_channel_config_t *configs)
-{
-    uint8_t buffer[9]; /* 1个命令字节 + 4个通道 * 2字节 */
-
-    /* 构造连续写命令 */
-    buffer[0] = MCP4728_CMD_WRITE_REG | 0x08; /* 多通道写入模式 */
-
-    for (int i = 0; i < 4; i++) {
-        uint16_t data     = configs[i].data & 0x0FFF;
-        buffer[1 + i * 2] = ((configs[i].ref_mode & 0x01) << 7) |
-                            ((configs[i].power_mode & 0x03) << 5) |
-                            ((configs[i].gain & 0x01) << 4) |
-                            ((data >> 8) & 0x0F);
-        buffer[2 + i * 2] = data & 0xFF;
+    MCP4728_INT16_TYPE tmp = rate * MCP4728_DAC_MAX;
+    MCP4728_UINT16_TYPE value;
+    if (tmp > (int32_t)MCP4728_DAC_MAX)
+    {
+        value = MCP4728_DAC_MAX;
     }
-
-    /* 发送数据 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                buffer, 9, MCP4728_TIMEOUT_MS);
-
-    return (status == HAL_OK) ? 0 : 1;
+    else if (tmp < 0)
+    {
+        value = 0;
+    }
+    else
+    {
+        value = tmp;
+    }
+    MCP4728_UINT8_TYPE data[3] = {0};
+    data[0] |= (MCP4728_CX(2) << 5) & 0xE0;
+    data[0] |= (MCP4728_WX(0) << 3) & 0x18;
+    data[0] |= (MCP4728_DACX(0) << 1) & 0x06;
+    data[0] |= (0 << 0) & 0x01;
+    data[1] |= (MCP4728_VREFX(1) << 7) & 0x80;
+    data[1] |= (MCP4728_PDX(0) << 5) & 0x60;
+    data[1] |= (MCP4728_GX(0) << 4) & 0x10;
+    data[1] |= (value >> 8) & 0x0F;
+    data[2] = value & 0x00FF;
+    mcp4728_i2c_transmit((mcp4728_addr_register << 1 | 0x0), data, 3);
 }
 
-uint8_t mcp4728_write_all_channels_eeprom(
-    const mcp4728_channel_config_t *configs)
+void mcp4728_set_dac_b(float rate)
 {
-    uint8_t buffer[9]; /* 1个命令字节 + 4个通道 * 2字节 */
-
-    /* 构造连续写EEPROM命令 */
-    buffer[0] = MCP4728_CMD_WRITE_EEPROM | 0x08; /* 多通道写入EEPROM模式 */
-
-    for (int i = 0; i < 4; i++) {
-        uint16_t data     = configs[i].data & 0x0FFF;
-        buffer[1 + i * 2] = ((configs[i].ref_mode & 0x01) << 7) |
-                            ((configs[i].power_mode & 0x03) << 5) |
-                            ((configs[i].gain & 0x01) << 4) |
-                            ((data >> 8) & 0x0F);
-        buffer[2 + i * 2] = data & 0xFF;
+    MCP4728_INT16_TYPE tmp = rate * MCP4728_DAC_MAX;
+    MCP4728_UINT16_TYPE value;
+    if (tmp > (int32_t)MCP4728_DAC_MAX)
+    {
+        value = MCP4728_DAC_MAX;
     }
-
-    /* 发送数据 */
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                buffer, 9, MCP4728_TIMEOUT_MS);
-
-    return (status == HAL_OK) ? 0 : 1;
-}
-
-uint8_t mcp4728_read_all_channels(mcp4728_channel_config_t *configs)
-{
-    uint8_t buffer[24]; /* 6字节/通道 * 4通道 */
-
-    /* 发送读命令 */
-    uint8_t cmd = MCP4728_CMD_READ_REG;
-    HAL_StatusTypeDef status =
-        HAL_I2C_Master_Transmit(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                &cmd, 1, MCP4728_TIMEOUT_MS);
-
-    if (status != HAL_OK) { return 1; }
-
-    /* 读取所有通道数据 */
-    status = HAL_I2C_Master_Receive(&MCP4728_I2C_HANDLE, MCP4728_I2C_ADDR << 1,
-                                    buffer, 24, MCP4728_TIMEOUT_MS);
-
-    if (status != HAL_OK) { return 1; }
-
-    /* 解析数据 */
-    for (int i = 0; i < 4; i++) {
-        configs[i].ref_mode   = (buffer[1 + i * 6] >> 7) & 0x01;
-        configs[i].power_mode = (buffer[1 + i * 6] >> 5) & 0x03;
-        configs[i].gain       = (buffer[1 + i * 6] >> 4) & 0x01;
-        configs[i].data = ((buffer[1 + i * 6] & 0x0F) << 8) | buffer[2 + i * 6];
+    else if (tmp < 0)
+    {
+        value = 0;
     }
-
-    return 0;
+    else
+    {
+        value = tmp;
+    }
+    MCP4728_UINT8_TYPE data[3] = {0};
+    data[0] |= (MCP4728_CX(2) << 5) & 0xE0;
+    data[0] |= (MCP4728_WX(0) << 3) & 0x18;
+    data[0] |= (MCP4728_DACX(1) << 1) & 0x06;
+    data[0] |= (0 << 0) & 0x01;
+    data[1] |= (MCP4728_VREFX(1) << 7) & 0x80;
+    data[1] |= (MCP4728_PDX(0) << 5) & 0x60;
+    data[1] |= (MCP4728_GX(0) << 4) & 0x10;
+    data[1] |= (value >> 8) & 0x0F;
+    data[2] = value & 0x00FF;
+    mcp4728_i2c_transmit((mcp4728_addr_register << 1 | 0x0), data, 3);
 }

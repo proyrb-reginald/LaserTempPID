@@ -8,6 +8,7 @@ srcDirs:
   - app
   - rtthread
   - bsp
+  - driver
 virtualFolder:
   name: <virtual_root>
   files: []
@@ -35,7 +36,8 @@ targets:
         - rtthread/include
         - bsp
       libList: []
-    excludeList: []
+    excludeList:
+      - driver/dacx0502
     toolchain: GCC
     toolchainConfigMap:
       GCC:

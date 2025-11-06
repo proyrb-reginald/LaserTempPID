@@ -1,100 +1,70 @@
 #ifndef MCP4728_H
 #define MCP4728_H
 
-#include "mcp4728_conf.h"
+/* 提供HAL库 */
+#include <stm32f4xx_hal.h>
+#include <board.h>
 
-/* MCP4728 I2C地址 */
-#define MCP4728_BASE_ADDR    0x60 /* 基础地址 A2=A1=0 */
-#define MCP4728_ADDR_A0_HIGH 0x61 /* A0引脚为高时的地址 */
+/* 基本数据类型定义 */
+#define MCP4728_UINT8_TYPE  uint8_t
+#define MCP4728_INT16_TYPE  int16_t
+#define MCP4728_UINT16_TYPE uint16_t
 
-/* MCP4728命令类型 */
-#define MCP4728_CMD_FAST_WRITE   0x00 /* 快速写命令 */
-#define MCP4728_CMD_WRITE_REG    0x40 /* 写寄存器命令 */
-#define MCP4728_CMD_WRITE_EEPROM 0x60 /* 写EEPROM命令 */
-#define MCP4728_CMD_READ_REG     0x90 /* 读寄存器命令 */
+/* 串口日志 */
+#define MCP4728_DEBUG 1
+#if MCP4728_DEBUG == 1
+/* 提供串口日志输出函数 */
+#define MCP4728_DEBUG_INTERFACE rt_lprintf
+#else
+#define MCP4728_DEBUG_INTERFACE(...)
+#endif
 
-/* MCP4728通道定义 */
-#define MCP4728_CHANNEL_A 0x00
-#define MCP4728_CHANNEL_B 0x01
-#define MCP4728_CHANNEL_C 0x02
-#define MCP4728_CHANNEL_D 0x03
+#ifdef MCP4728_C
+/* 指定串行接口并实现发送与接收函数 */
+inline void mcp4728_i2c_transmit(MCP4728_UINT8_TYPE addr,
+                                 MCP4728_UINT8_TYPE *data,
+                                 MCP4728_UINT16_TYPE size)
+{
+    // #error "Please implement the i2c transmit function!"
+    HAL_I2C_Master_Transmit(&hi2c1, addr, data, size, 20);
+}
 
-/* MCP4728电源模式 */
-#define MCP4728_PWR_MODE_NORMAL  0x00 /* 正常模式 */
-#define MCP4728_PWR_MODE_PD_1K   0x01 /* 1K欧姆下拉模式 */
-#define MCP4728_PWR_MODE_PD_100K 0x02 /* 100K欧姆下拉模式 */
-#define MCP4728_PWR_MODE_PD_500K 0x03 /* 500K欧姆下拉模式 */
+inline void mcp4728_i2c_receive(MCP4728_UINT8_TYPE addr,
+                                MCP4728_UINT8_TYPE *data,
+                                MCP4728_UINT16_TYPE size)
+{
+    // #error "Please implement the i2c receive function!"
+    HAL_I2C_Master_Receive(&hi2c1, addr, data, size, 20);
+}
 
-/* MCP4728参考电压选择 */
-#define MCP4728_REF_MODE_VDD      0x00 /* 使用VDD作为参考电压 */
-#define MCP4728_REF_MODE_INTERNAL 0x01 /* 使用内部2.048V参考电压 */
+inline void mcp4728_gpio_ldac_set(void)
+{
+    // #error "Please implement the gpio ldac write function!"
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+}
 
-/* MCP4728增益选择 */
-#define MCP4728_GAIN_X1 0x00 /* 增益为1 */
-#define MCP4728_GAIN_X2 0x01 /* 增益为2 */
+inline void mcp4728_gpio_ldac_reset(void)
+{
+    // #error "Please implement the gpio ldac write function!"
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+}
+#endif
 
-/**
- * @brief MCP4728通道配置结构体
- */
-typedef struct {
-    uint16_t data;      /* DAC数据值 (12位) */
-    uint8_t power_mode; /* 电源模式 */
-    uint8_t ref_mode;   /* 参考电压模式 */
-    uint8_t gain;       /* 增益设置 */
-} mcp4728_channel_config_t;
+/* 提供延时函数 */
+#include <rtthread.h>
+#define MCP4728_DELAY_INTERFACE rt_thread_mdelay
 
-/**
- * @brief 初始化MCP4728模块
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_init(void);
+/* 使用外部参考电压填1 | 使用内部参考电压填0 */
+#define MCP4728_USE_EXTERNAL_REF_VOLTAGE 0
+#if MCP4728_USE_EXTERNAL_REF_VOLTAGE
+#define MCP4728_REF_VOLTAGE 3.3f
+#else
+#define MCP4728_REF_VOLTAGE 2.048f
+#endif
 
-/**
- * @brief 快速写入单个通道
- * @param channel 通道号 (MCP4728_CHANNEL_A-D)
- * @param data DAC数据值 (12位)
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_fast_write(uint8_t channel, uint16_t data);
-
-/**
- * @brief 写入单个通道配置到寄存器
- * @param channel 通道号 (MCP4728_CHANNEL_A-D)
- * @param config 通道配置结构体指针
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_write_channel_reg(uint8_t channel,
-                                  const mcp4728_channel_config_t *config);
-
-/**
- * @brief 写入单个通道配置到寄存器和EEPROM
- * @param channel 通道号 (MCP4728_CHANNEL_A-D)
- * @param config 通道配置结构体指针
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_write_channel_eeprom(uint8_t channel,
-                                     const mcp4728_channel_config_t *config);
-
-/**
- * @brief 同时写入所有通道配置到寄存器
- * @param configs 四个通道配置结构体数组指针
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_write_all_channels_reg(const mcp4728_channel_config_t *configs);
-
-/**
- * @brief 同时写入所有通道配置到寄存器和EEPROM
- * @param configs 四个通道配置结构体数组指针
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_write_all_channels_eeprom(
-    const mcp4728_channel_config_t *configs);
-
-/**
- * @brief 读取所有通道的寄存器配置
- * @param configs 四个通道配置结构体数组指针
- * @retval 0: 成功, 其他: 失败
- */
-uint8_t mcp4728_read_all_channels(mcp4728_channel_config_t *configs);
+/* 导出函数 */
+void mcp4728_init(void);
+void mcp4728_set_dac_a(float rate);
+void mcp4728_set_dac_b(float rate);
 
 #endif /* MCP4728_H */
