@@ -36,8 +36,7 @@ targets:
         - rtthread/include
         - bsp
       libList: []
-    excludeList:
-      - driver/dacx0502
+    excludeList: []
     toolchain: GCC
     toolchainConfigMap:
       GCC:

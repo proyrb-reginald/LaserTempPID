@@ -1,5 +1,3 @@
-#define MCP4728_C
-
 #include <mcp4728.h>
 
 #define MCP4728_DAC_MAX (4096 - 1)
@@ -32,8 +30,8 @@ void mcp4728_init(void)
     mcp4728_gpio_ldac_set();
     mcp4728_addr_eeprom = 0b01100000 | ((data[0] >> 5) & 0x07);
     mcp4728_addr_register = 0b01100000 | ((data[0] >> 1) & 0x07);
-    MCP4728_DEBUG_INTERFACE("0x%X(RAW) 0x%X(EEPROM) 0x%X(Register)\n", data[0],
-                            mcp4728_addr_eeprom, mcp4728_addr_register);
+    MCP4728_LOG_INTERFACE("0x%X(RAW) 0x%X(EEPROM) 0x%X(Register)\n", data[0],
+                          mcp4728_addr_eeprom, mcp4728_addr_register);
 
     /* 设置通道增益 */
     data[0] = 0;
@@ -49,7 +47,7 @@ void mcp4728_set_dac_a(float rate)
 {
     MCP4728_INT16_TYPE tmp = rate * MCP4728_DAC_MAX;
     MCP4728_UINT16_TYPE value;
-    if (tmp > (int32_t)MCP4728_DAC_MAX)
+    if (tmp > (MCP4728_INT16_TYPE)MCP4728_DAC_MAX)
     {
         value = MCP4728_DAC_MAX;
     }
@@ -78,7 +76,7 @@ void mcp4728_set_dac_b(float rate)
 {
     MCP4728_INT16_TYPE tmp = rate * MCP4728_DAC_MAX;
     MCP4728_UINT16_TYPE value;
-    if (tmp > (int32_t)MCP4728_DAC_MAX)
+    if (tmp > (MCP4728_INT16_TYPE)MCP4728_DAC_MAX)
     {
         value = MCP4728_DAC_MAX;
     }
