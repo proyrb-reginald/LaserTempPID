@@ -41,8 +41,6 @@ static ADS1118_UINT16_TYPE ads1118_get_config_value(void)
 
 void ads1118_init(void)
 {
-    // config.MUX = 6; // AIN2-GND
-    config.MUX = 7;  // AIN3-GND
     config.PGA = 1;  // 4.096V
     config.MODE = 0; // 连续转换
     config.DR = 7;   // 860 SPS
@@ -58,17 +56,41 @@ void ads1118_init(void)
 
     ADS1118_UINT8_TYPE rx_data[4] = {0};
     ads1118_gpio_cs_reset();
-    HAL_SPI_TransmitReceive(&hspi3, tx_data, rx_data, 4, 20);
+    HAL_SPI_TransmitReceive(&hspi3, tx_data, rx_data, 4, 10);
     ads1118_gpio_cs_set();
     ADS1118_LOG_INTERFACE("rx_data:0x%X%X%X%X\n", rx_data[0], rx_data[1],
                           rx_data[2], rx_data[3]);
 }
 
-void ads1118_read_ain(void)
+void ads1118_set_channel(ADS1118_UINT8_TYPE channel)
+{
+    config.MUX = channel;
+    ADS1118_UINT16_TYPE value = ads1118_get_config_value();
+    ADS1118_UINT8_TYPE tx_data[2] = {0};
+    tx_data[0] = ((ADS1118_UINT16_TYPE)value >> 8) & 0x00FF;
+    tx_data[1] = (ADS1118_UINT16_TYPE)value & 0x00FF;
+    ads1118_gpio_cs_reset();
+    HAL_SPI_Transmit(&hspi3, tx_data, 2, 10);
+    ads1118_gpio_cs_set();
+}
+
+float ads1118_read_channel(void)
 {
     volatile ADS1118_UINT8_TYPE data[2] = {0};
     ads1118_gpio_cs_reset();
     ads1118_spi_receive((ADS1118_UINT8_TYPE *)data, 2);
     ads1118_gpio_cs_set();
     ADS1118_LOG_INTERFACE("adc:0x%X%x\n", data[0], data[1]);
+    ADS1118_UINT16_TYPE value = (((ADS1118_UINT16_TYPE)data[0] << 8) & 0xFF00) |
+                                ((ADS1118_UINT16_TYPE)data[1] & 0x00FF);
+    float rate = 0.0f;
+    if (config.PGA == 1)
+    {
+        rate = ((float)value / 65535) * 4.096 / 2;
+    }
+    else
+    {
+        ADS1118_LOG_INTERFACE("config.PGA error\n");
+    }
+    return rate;
 }

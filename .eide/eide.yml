@@ -22,6 +22,7 @@ targets:
     cppPreprocessAttrs:
       defineList:
         - STM32F405xx
+        - APP_CMD_START
       incList:
         - hal/Core/Inc
         - hal/Drivers/CMSIS/Include
@@ -36,7 +37,9 @@ targets:
         - rtthread/include
         - bsp
       libList: []
-    excludeList: []
+    excludeList:
+      - app/app_cmd.c
+      - app/app_ctr.c
     toolchain: GCC
     toolchainConfigMap:
       GCC:

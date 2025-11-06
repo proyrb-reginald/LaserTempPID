@@ -14,12 +14,12 @@
 #define ADS1118_UINT16_TYPE uint16_t
 
 /* 配置串口日志 */
-#define ADS1118_LOG 1
+#define ADS1118_LOG 0
 #if ADS1118_LOG == 1
 /* 串口日志接口 */
 #define ADS1118_LOG_INTERFACE rt_lprintf
 #else
-#define ADS1118_DEBUG_INTERFACE(...)
+#define ADS1118_LOG_INTERFACE(...)
 #endif
 
 /* 提供延时函数 */
@@ -54,6 +54,20 @@ inline void ads1118_gpio_cs_reset(void)
 
 /* 导出接口 */
 void ads1118_init(void);
-void ads1118_read_ain(void);
+
+/**
+ * channel 选择采样通道
+ * 0: AIN0-AIN1
+ * 1: AIN0-AIN3
+ * 2: AIN1-AIN3
+ * 3: AIN2-AIN3
+ * 4: AIN0-GND
+ * 5: AIN1-GND
+ * 6: AIN2-GND
+ * 7: AIN3-GND
+ */
+void ads1118_set_channel(ADS1118_UINT8_TYPE channel);
+
+float ads1118_read_channel(void);
 
 #endif /* ADS1118_H */
