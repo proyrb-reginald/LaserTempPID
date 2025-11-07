@@ -26,13 +26,25 @@
 /* 提供延时函数 */
 #define MCP4728_DELAY_INTERFACE rt_thread_mdelay
 
+/* 设置参考电压 0使用VDD作为参考电压 1使用内部参考电压 */
+#define MCP4728_INTERNAL_REF_VOLTAGE 1
+#if ((MCP4728_INTERNAL_REF_VOLTAGE < 0) || (MCP4728_INTERNAL_REF_VOLTAGE > 1))
+#error "MCP4728_INTERNAL_REF_VOLTAGE must be [0/1]!"
+#endif
+
+/* 设置省电模式 0正常输出 1输出接1kΩ 2输出接100kΩ 3输出接500kΩ */
+#define MCP4728_PD_MODE 0
+#if ((MCP4728_PD_MODE < 0) || (MCP4728_PD_MODE > 3))
+#error "MCP4728_PD_MODE must be [0/1/2/3]!"
+#endif
+
 /* 接口实现 */
 inline void mcp4728_i2c_transmit(MCP4728_UINT8_TYPE addr,
                                  MCP4728_UINT8_TYPE *data,
                                  MCP4728_UINT16_TYPE size)
 {
     // #warning "Please implement the i2c transmit function!"
-    HAL_I2C_Master_Transmit(&hi2c1, addr, data, size, 20);
+    HAL_I2C_Master_Transmit(&hi2c1, addr, data, size, 10);
 }
 
 inline void mcp4728_i2c_receive(MCP4728_UINT8_TYPE addr,
@@ -40,7 +52,7 @@ inline void mcp4728_i2c_receive(MCP4728_UINT8_TYPE addr,
                                 MCP4728_UINT16_TYPE size)
 {
     // #warning "Please implement the i2c receive function!"
-    HAL_I2C_Master_Receive(&hi2c1, addr, data, size, 20);
+    HAL_I2C_Master_Receive(&hi2c1, addr, data, size, 10);
 }
 
 inline void mcp4728_gpio_ldac_set(void)

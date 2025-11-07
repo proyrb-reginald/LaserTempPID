@@ -8,8 +8,10 @@
 #define MCP4728_PDX(x) (MCP4728_UINT8_TYPE)(x)
 #define MCP4728_GX(x) (MCP4728_UINT8_TYPE)(x)
 
-static MCP4728_UINT8_TYPE mcp4728_addr_eeprom = 0b01100000;
-static MCP4728_UINT8_TYPE mcp4728_addr_register = 0b01100000;
+#define MCP4728_I2C_7BIT_ADDR 0b1100000
+
+static MCP4728_UINT8_TYPE mcp4728_addr_eeprom = MCP4728_I2C_7BIT_ADDR;
+static MCP4728_UINT8_TYPE mcp4728_addr_register = MCP4728_I2C_7BIT_ADDR;
 
 void mcp4728_init(void)
 {
@@ -22,25 +24,17 @@ void mcp4728_init(void)
     MCP4728_DELAY_INTERFACE(1);
 
     /* 读取地址位 */
-    MCP4728_UINT8_TYPE data[1] = {0};
+    volatile MCP4728_UINT8_TYPE data[1] = {0x0};
     mcp4728_gpio_ldac_set();
-    mcp4728_i2c_transmit(0x0, (MCP4728_UINT8_TYPE[]){0x0C}, 1);
+    mcp4728_i2c_transmit(0x00, (MCP4728_UINT8_TYPE[]){0x0C}, 1);
     mcp4728_gpio_ldac_reset();
-    mcp4728_i2c_transmit((0b1100000 << 1) | 0x1, data, 1);
+    mcp4728_i2c_receive((MCP4728_I2C_7BIT_ADDR << 1) | 0x1,
+                        (MCP4728_UINT8_TYPE *)data, 1);
     mcp4728_gpio_ldac_set();
-    mcp4728_addr_eeprom = 0b01100000 | ((data[0] >> 5) & 0x07);
-    mcp4728_addr_register = 0b01100000 | ((data[0] >> 1) & 0x07);
+    mcp4728_addr_eeprom = MCP4728_I2C_7BIT_ADDR | ((data[0] >> 5) & 0x07);
+    mcp4728_addr_register = MCP4728_I2C_7BIT_ADDR | ((data[0] >> 1) & 0x07);
     MCP4728_LOG_INTERFACE("0x%X(RAW) 0x%X(EEPROM) 0x%X(Register)\n", data[0],
                           mcp4728_addr_eeprom, mcp4728_addr_register);
-
-    /* 设置通道增益 */
-    data[0] = 0;
-    data[0] |= (MCP4728_CX(6) << 5) & 0xE0;
-    data[0] |= (0b0 << 3) & 0x08; // Gain 1 for A
-    data[0] |= (0b0 << 2) & 0x04; // Gain 1 for B
-    data[0] |= (0b0 << 1) & 0x02; // Gain 1 for C
-    data[0] |= (0b0 << 0) & 0x01; // Gain 1 for D
-    mcp4728_i2c_transmit((mcp4728_addr_register << 1 | 0x0), data, 1);
 }
 
 void mcp4728_set_dac_a(float rate)
@@ -64,8 +58,8 @@ void mcp4728_set_dac_a(float rate)
     data[0] |= (MCP4728_WX(0) << 3) & 0x18;
     data[0] |= (MCP4728_DACX(0) << 1) & 0x06;
     data[0] |= (0 << 0) & 0x01;
-    data[1] |= (MCP4728_VREFX(1) << 7) & 0x80;
-    data[1] |= (MCP4728_PDX(0) << 5) & 0x60;
+    data[1] |= (MCP4728_VREFX(MCP4728_INTERNAL_REF_VOLTAGE) << 7) & 0x80;
+    data[1] |= (MCP4728_PDX(MCP4728_PD_MODE) << 5) & 0x60;
     data[1] |= (MCP4728_GX(0) << 4) & 0x10;
     data[1] |= (value >> 8) & 0x0F;
     data[2] = value & 0x00FF;
@@ -93,8 +87,8 @@ void mcp4728_set_dac_b(float rate)
     data[0] |= (MCP4728_WX(0) << 3) & 0x18;
     data[0] |= (MCP4728_DACX(1) << 1) & 0x06;
     data[0] |= (0 << 0) & 0x01;
-    data[1] |= (MCP4728_VREFX(1) << 7) & 0x80;
-    data[1] |= (MCP4728_PDX(0) << 5) & 0x60;
+    data[1] |= (MCP4728_VREFX(MCP4728_INTERNAL_REF_VOLTAGE) << 7) & 0x80;
+    data[1] |= (MCP4728_PDX(MCP4728_PD_MODE) << 5) & 0x60;
     data[1] |= (MCP4728_GX(0) << 4) & 0x10;
     data[1] |= (value >> 8) & 0x0F;
     data[2] = value & 0x00FF;

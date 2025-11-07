@@ -1,5 +1,6 @@
 #include <ads1118.h>
 #include <board.h>
+#include <math.h>
 #include <mcp4728.h>
 #include <rtthread.h>
 #ifndef APP_CMD_START
@@ -7,32 +8,49 @@
 #include <app_ctr.h>
 #endif
 
-// y = 4216411334.5459 * exp(-0.080930 * x) + 11.5511
+// y = 302.007946 * x^(-0.080455) + 14.022974
+#define CURRENT (1.235f / 24.91f)
+
+inline float exp_fit(float x)
+{
+    return 302.007946f * powf(x, -0.080455f) + 14.022974f;
+}
 
 void thread_test(void *parameter)
 {
     mcp4728_init();
     ads1118_init();
-    ads1118_set_channel(6);
+    ads1118_set_channel(7);
     while (1)
     {
         /* Channel-A对应DAC_L Channel-B对应DAC_H */
-        /* DAC_L高(低)TEC-高(低)  */
-        static uint8_t cnt = 0;
-        if (cnt++ % 2 == 0)
-        {
-            mcp4728_set_dac_a(1.0f);
-            mcp4728_set_dac_b(0.0f);
-            // rt_lprintf("set a reset b\n");
-        }
-        else
-        {
-            mcp4728_set_dac_a(0.0f);
-            mcp4728_set_dac_b(1.0f);
-            // rt_lprintf("set b reset a\n");
-        }
+        /* DAC_L高(低)TEC-高(低) DAC_H高(低)TEC+高(低) */
+        // static uint8_t cnt = 0;
+        // if (cnt++ % 2 == 0)
+        // {
+        //     mcp4728_set_dac_a(1.0f);
+        //     mcp4728_set_dac_b(0.0f);
+        // }
+        // else
+        // {
+        //     mcp4728_set_dac_a(0.0f);
+        //     mcp4728_set_dac_b(1.0f);
+        // }
+        mcp4728_set_dac_a(0.0f);
+        mcp4728_set_dac_b(1.0f);
+
         float rate = ads1118_read_channel();
-        rt_lprintf("rate:%d\n", (int16_t)(rate * 10000));
+        float voltage = rate * 4.096f;
+
+        // float omp = voltage / CURRENT;
+        // float temp = exp_fit(omp);
+        // rt_lprintf("rate:%d voltage:%d omp:%d temp:%d\n",
+        //            (int16_t)(rate * 1000), (int16_t)(voltage * 1000),
+        //            (int16_t)(omp * 1000), (int16_t)(temp * 1));
+
+        rt_lprintf("rate:%d voltage:%d\n", (int16_t)(rate * 1000),
+                   (int16_t)(voltage * 1000));
+
         rt_thread_mdelay(1000);
     }
 }
