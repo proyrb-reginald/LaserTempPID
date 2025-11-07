@@ -7,6 +7,8 @@
 #include <app_ctr.h>
 #endif
 
+// y = 4216411334.5459 * exp(-0.080930 * x) + 11.5511
+
 void thread_test(void *parameter)
 {
     mcp4728_init();
@@ -14,6 +16,8 @@ void thread_test(void *parameter)
     ads1118_set_channel(6);
     while (1)
     {
+        /* Channel-A对应DAC_L Channel-B对应DAC_H */
+        /* DAC_L高(低)TEC-高(低)  */
         static uint8_t cnt = 0;
         if (cnt++ % 2 == 0)
         {
