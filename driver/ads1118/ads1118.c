@@ -41,7 +41,6 @@ static ADS1118_UINT16_TYPE ads1118_get_config_value(void)
 
 void ads1118_init(void)
 {
-    config.PGA = 1;  // 4.096V
     config.MODE = 0; // 连续转换
     config.DR = 7;   // 860 SPS
     ADS1118_UINT16_TYPE value = ads1118_get_config_value();
@@ -84,13 +83,6 @@ float ads1118_read_channel(void)
     ADS1118_UINT16_TYPE value = (((ADS1118_UINT16_TYPE)data[0] << 8) & 0xFF00) |
                                 ((ADS1118_UINT16_TYPE)data[1] & 0x00FF);
     float rate = 0.0f;
-    if (config.PGA == 1)
-    {
-        rate = ((float)value / 65535) * 4.096 / 2;
-    }
-    else
-    {
-        ADS1118_LOG_INTERFACE("config.PGA error\n");
-    }
+    rate = ((float)value / 65535) * ADS1118_VOLTAGE_VREF;
     return rate;
 }

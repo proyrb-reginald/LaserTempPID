@@ -30,9 +30,9 @@ inline float exp_fit(float x)
 }
 
 /* 温度PID控制参数定义 */
-#define MAX_CURRENT 1.2f                                   // 最大电流限制 (A)
-#define MIN_CURRENT (-MAX_CURRENT)                         // 最小电流 (-1.2A)
-#define TEMP_PID_TARGET 22.0f                              // 目标温度值(摄氏度)
+#define MAX_CURRENT 1.30f                                  // 最大限制 (V)
+#define MIN_CURRENT (-MAX_CURRENT)                         // 最小限制 (V)
+#define TEMP_PID_TARGET -40.0f                             // 目标温度值(摄氏度)
 #define TEMP_PID_KP 0.3f                                   // 温度PID比例系数
 #define TEMP_PID_KI 0.01f                                  // 温度PID积分系数
 #define TEMP_PID_KD 0.0f                                   // 温度PID微分系数
@@ -130,13 +130,15 @@ void thread_test(void *parameter)
         /* 读取实际电流转电压ADC值 */
         ads1118_set_channel(7);
         rt_thread_mdelay(3);
-        float voltage = ads1118_read_channel() * 4.096f; // 转换为实际电压值
+        float voltage =
+            ads1118_read_channel() * ADS1118_VOLTAGE_VREF; // 转换为实际电压值
 
         /* 读取传感器的温度转电压值 */
         ads1118_set_channel(6);
         rt_thread_mdelay(3);
         float current_temp =
-            exp_fit(ads1118_read_channel() * 4.096f / CURRENT_CONST) -
+            exp_fit((ads1118_read_channel() * ADS1118_VOLTAGE_VREF) /
+                    CURRENT_CONST) -
             273.15f; // 转换为摄氏度
 
         /* 温度PID控制器计算 */

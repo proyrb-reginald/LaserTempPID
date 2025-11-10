@@ -22,6 +22,8 @@
 #define ADS1118_LOG_INTERFACE(...)
 #endif
 
+#define ADS1118_VOLTAGE_VREF 2.048f
+
 /* 提供延时函数 */
 #define ADS1118_DELAY_INTERFACE rt_thread_mdelay
 
