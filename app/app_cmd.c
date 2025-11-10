@@ -1,6 +1,9 @@
 #include <app_cmd.h>
 #include <app_ctr.h>
+#include <errno.h>
 #include <rtthread.h>
+#include <stdlib.h>
+#include <string.h>
 
 static app_ctr_args ctr_args = {.current_mode = 1,
                                 .temperature_mode = 0,
@@ -95,49 +98,3 @@ int msh_exit_app(int argc, char **argv)
     return 0;
 }
 MSH_CMD_EXPORT_ALIAS(msh_exit_app, exit_app, Usage : exit_app[task_name]);
-
-int msh_ctr_mode(int argc, char **argv)
-{
-    if (strcmp("c", argv[1]) == 0)
-    {
-        if (strcmp("0", argv[2]) == 0)
-        {
-            ctr_args.current_mode = 0;
-        }
-        else if (strcmp("1", argv[2]) == 0)
-        {
-            ctr_args.current_mode = 1;
-        }
-        else
-        {
-            rt_kprintf("current_mode error.\n");
-            return 0;
-        }
-        rt_kprintf("set finish.\n");
-        return 0;
-    }
-    else if (strcmp("t", argv[1]) == 0)
-    {
-        if (strcmp("0", argv[2]) == 0)
-        {
-            ctr_args.temperature_mode = 0;
-        }
-        else if (strcmp("1", argv[2]) == 0)
-        {
-            ctr_args.temperature_mode = 1;
-        }
-        else
-        {
-            rt_kprintf("temperature_mode error.\n");
-            return 0;
-        }
-        rt_kprintf("set finish.\n");
-        return 0;
-    }
-    else
-    {
-        rt_kprintf("Usage: ctr_mode [c/t] [0/1]\n");
-    }
-    return 0;
-}
-MSH_CMD_EXPORT_ALIAS(msh_ctr_mode, ctr_mode, Usage : ctr_mode[c / t][0 / 1]);
